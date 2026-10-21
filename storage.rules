@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /quickfix/{userId}/{reportId}/{fileName} {
+      function owner() { return request.auth != null && request.auth.uid == userId; }
+      function pendingOrMissing() {
+        return !firestore.exists(/databases/(default)/documents/quickfix_reports/$(reportId))
+          || (firestore.get(/databases/(default)/documents/quickfix_reports/$(reportId)).data.ownerId == userId
+            && firestore.get(/databases/(default)/documents/quickfix_reports/$(reportId)).data.status == 'Submitted');
+      }
+      allow get: if owner();
+      allow create: if owner() && pendingOrMissing()
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if owner() && pendingOrMissing();
+    }
+  }
+}

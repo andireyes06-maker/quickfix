@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Keep Activity 5's profile permissions intact.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /quickfix_reports/{reportId} {
+      function owner() {
+        return request.auth != null && resource.data.ownerId == request.auth.uid;
+      }
+      function validReport() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['ownerId', 'title', 'description', 'location', 'category', 'photoPath', 'latitude', 'longitude', 'status', 'createdAt', 'updatedAt'])
+          && d.keys().hasOnly(['ownerId', 'title', 'description', 'location', 'category', 'photoPath', 'latitude', 'longitude', 'status', 'createdAt', 'updatedAt'])
+          && d.ownerId == request.auth.uid
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 100
+          && d.description is string && d.description.size() > 0 && d.description.size() <= 2000
+          && d.location is string && d.location.size() > 0 && d.location.size() <= 160
+          && d.category in ['Furniture', 'Electrical', 'Plumbing', 'Equipment', 'Other']
+          && d.photoPath is string && d.photoPath.matches('quickfix/' + request.auth.uid + '/' + reportId + '/[^/]+')
+          && d.latitude is number && d.latitude >= -90 && d.latitude <= 90
+          && d.longitude is number && d.longitude >= -180 && d.longitude <= 180
+          && d.status in ['Submitted', 'Under Review', 'In Progress', 'Resolved']
+          && d.createdAt is timestamp && d.updatedAt == request.time;
+      }
+      function nextStatus() {
+        return (resource.data.status == 'Submitted' && request.resource.data.status == 'Under Review')
+          || (resource.data.status == 'Under Review' && request.resource.data.status == 'In Progress')
+          || (resource.data.status == 'In Progress' && request.resource.data.status == 'Resolved');
+      }
+      allow read: if owner();
+      allow create: if request.auth != null && validReport()
+        && request.resource.data.status == 'Submitted' && request.resource.data.createdAt == request.time;
+      allow update: if owner() && validReport()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && ((resource.data.status == 'Submitted' && request.resource.data.status == 'Submitted')
+          || (nextStatus() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])));
+      allow delete: if owner() && resource.data.status == 'Submitted';
+    }
+  }
+}

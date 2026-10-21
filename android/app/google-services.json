@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "976197366702",
+    "firebase_url": "https://aclon-franz-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "aclon-franz",
+    "storage_bucket": "aclon-franz.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:976197366702:android:82110f9e39c4da651bce3f",
+        "android_client_info": {
+          "package_name": "com.aclon.quickfix"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAI6BcJpPkd_XKV12ibOcJsHo8eIurKEb0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:976197366702:android:4e3868a5e61e3fef1bce3f",
+        "android_client_info": {
+          "package_name": "com.example.activity5_login"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAI6BcJpPkd_XKV12ibOcJsHo8eIurKEb0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

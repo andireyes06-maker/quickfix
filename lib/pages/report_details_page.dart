@@ -128,6 +128,10 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
               child: Text("Cancel"),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade800,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 Navigator.pop(dialogContext);
                 deleteReport();
@@ -238,10 +242,12 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         children: [
                           Chip(label: Text(report["category"])),
                           Chip(
+                            backgroundColor: statusColor(report["status"]),
+                            side: BorderSide.none,
                             label: Text(
                               report["status"],
                               style: TextStyle(
-                                color: statusColor(report["status"]),
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -280,6 +286,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                             borderRadius: BorderRadius.circular(12),
                             child: Image.memory(
                               image.data!,
+                              semanticLabel: "Photo of the reported problem",
                               height: 260,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stack) {
@@ -311,12 +318,29 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                       ),
                       SizedBox(height: 8),
                       Text(report["location"]),
+                      SizedBox(height: 4),
                       Text(
                         "Approximate coordinates: ${(report['latitude'] as num).toStringAsFixed(3)}, ${(report['longitude'] as num).toStringAsFixed(3)}",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
+                        ),
                       ),
-                      SizedBox(height: 16),
-                      Text("Submitted: ${formatDate(report['createdAt'])}"),
-                      Text("Last update: ${formatDate(report['updatedAt'])}"),
+                      SizedBox(height: 12),
+                      Text(
+                        "Submitted: ${formatDate(report['createdAt'])}",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      Text(
+                        "Last update: ${formatDate(report['updatedAt'])}",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
                       SizedBox(height: 24),
                       Text(
                         "Report progress",
@@ -339,10 +363,17 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                                     : Icons.radio_button_unchecked,
                                 color: index <= current
                                     ? Colors.indigo
-                                    : Colors.grey,
+                                    : Colors.grey.shade600,
                               ),
                               SizedBox(width: 10),
-                              Text(statuses[index]),
+                              Text(
+                                statuses[index],
+                                style: TextStyle(
+                                  fontWeight: index == current
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -378,10 +409,13 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         ),
                         TextButton.icon(
                           onPressed: busy ? null : confirmDelete,
-                          icon: Icon(Icons.delete_outline, color: Colors.red),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: Colors.red.shade800,
+                          ),
                           label: Text(
                             "Delete report",
-                            style: TextStyle(color: Colors.red),
+                            style: TextStyle(color: Colors.red.shade800),
                           ),
                         ),
                       ],
@@ -413,9 +447,12 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                       if (error.isNotEmpty)
                         Padding(
                           padding: EdgeInsets.only(top: 16),
-                          child: Text(
-                            error,
-                            style: TextStyle(color: Colors.red.shade800),
+                          child: Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              error,
+                              style: TextStyle(color: Colors.red.shade800),
+                            ),
                           ),
                         ),
                       SizedBox(height: 24),

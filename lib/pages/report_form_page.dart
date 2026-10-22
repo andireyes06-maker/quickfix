@@ -53,6 +53,8 @@ class _ReportFormPageState extends State<ReportFormPage> {
   String category = "Furniture";
   String photoType = "image/jpeg";
   String error = "";
+  String photoError = "";
+  String locationError = "";
   Uint8List? photo;
   double? latitude;
   double? longitude;
@@ -106,7 +108,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          error =
+          photoError =
               "The previous photo could not be restored. Please take it again.";
         });
       }
@@ -124,7 +126,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
         return;
       }
       setState(() {
-        error = "Choose a JPG, PNG, or WebP photo.";
+        photoError = "Choose a JPG, PNG, or WebP photo.";
       });
       return;
     }
@@ -134,14 +136,15 @@ class _ReportFormPageState extends State<ReportFormPage> {
     }
     if (bytes.length > 500 * 1024) {
       setState(() {
-        error = "This photo is too large. Take it again or choose a smaller one.";
+        photoError =
+            "This photo is too large. Take it again or choose a smaller one.";
       });
       return;
     }
     setState(() {
       photo = bytes;
       photoType = type;
-      error = "";
+      photoError = "";
       changed = true;
     });
   }
@@ -150,7 +153,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
   Future<void> pickPhoto(ImageSource source) async {
     setState(() {
       deviceBusy = true;
-      error = "";
+      photoError = "";
     });
     try {
       final file = await ImagePicker().pickImage(
@@ -166,7 +169,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          error =
+          photoError =
               "Could not open the camera or photo library. Check permissions and try again.";
         });
       }
@@ -183,13 +186,14 @@ class _ReportFormPageState extends State<ReportFormPage> {
   Future<void> getLocation() async {
     setState(() {
       deviceBusy = true;
-      error = "";
+      locationError = "";
     });
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
         if (mounted) {
           setState(() {
-            error = "Turn on your device location services, then try again.";
+            locationError =
+                "Turn on your device location services, then try again.";
           });
         }
         return;
@@ -201,7 +205,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           setState(() {
-            error =
+            locationError =
                 "Location is blocked. Enable it for QuickFix in your device or browser settings.";
           });
         }
@@ -210,7 +214,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
       if (permission == LocationPermission.denied) {
         if (mounted) {
           setState(() {
-            error =
+            locationError =
                 "Location permission is needed to record where you reported the problem.";
           });
         }
@@ -233,14 +237,14 @@ class _ReportFormPageState extends State<ReportFormPage> {
     } on TimeoutException {
       if (mounted) {
         setState(() {
-          error =
+          locationError =
               "Could not get your location in time. Try again near a window or outdoors.";
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          error = "Could not get your location. Please try again.";
+          locationError = "Could not get your location. Please try again.";
         });
       }
     } finally {
@@ -254,18 +258,18 @@ class _ReportFormPageState extends State<ReportFormPage> {
 
   // CREATE / UPDATE
   Future<void> saveReport() async {
-    if (!formKey.currentState!.validate()) {
-      return;
-    }
-    if (photo == null && !hasPhoto) {
+    // Check everything first, so all the missing pieces show up at once.
+    bool formOk = formKey.currentState!.validate();
+    bool missingPhoto = photo == null && !hasPhoto;
+    bool missingLocation = latitude == null || longitude == null;
+    if (!formOk || missingPhoto || missingLocation) {
       setState(() {
-        error = "Please take or choose a photo of the problem.";
-      });
-      return;
-    }
-    if (latitude == null || longitude == null) {
-      setState(() {
-        error = "Tap Record location before submitting your report.";
+        photoError = missingPhoto
+            ? "Please take or choose a photo of the problem."
+            : "";
+        locationError = missingLocation
+            ? "Tap Record location before submitting your report."
+            : "";
       });
       return;
     }
@@ -369,6 +373,10 @@ class _ReportFormPageState extends State<ReportFormPage> {
               child: Text("Keep editing"),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade800,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 Navigator.pop(dialogContext);
                 Navigator.pop(context);
@@ -428,7 +436,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      "Add a clear photo and enough detail to identify the campus problem.",
+                      "Add a clear photo and enough detail to identify the campus problem. Everything on this page is required.",
                     ),
                     SizedBox(height: 24),
                     TextFormField(
@@ -510,7 +518,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
                     ),
                     SizedBox(height: 24),
                     Text(
-                      "Problem photo",
+                      "Problem photo (required)",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -522,6 +530,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
                         borderRadius: BorderRadius.circular(12),
                         child: Image.memory(
                           photo!,
+                          semanticLabel: "Photo of the reported problem",
                           height: 220,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stack) {
@@ -556,6 +565,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.memory(
                                   image.data!,
+                                  semanticLabel: "Photo of the reported problem",
                                   height: 220,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stack) {
@@ -578,7 +588,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
                       spacing: 12,
                       runSpacing: 8,
                       children: [
-                        OutlinedButton.icon(
+                        ElevatedButton.icon(
                           onPressed: busy || deviceBusy
                               ? null
                               : () {
@@ -598,39 +608,82 @@ class _ReportFormPageState extends State<ReportFormPage> {
                         ),
                       ],
                     ),
+                    SizedBox(height: 8),
                     Text(
-                      "One photo (JPG, PNG, or WebP). It is made smaller automatically. On desktop browsers, Take photo may open a file picker.",
+                      "One JPG, PNG, or WebP photo. Large photos are shrunk automatically.",
                     ),
+                    if (photoError.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            photoError,
+                            style: TextStyle(color: Colors.red.shade800),
+                          ),
+                        ),
+                      ),
                     SizedBox(height: 24),
                     Text(
-                      "Approximate location",
+                      "Approximate location (required)",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     SizedBox(height: 8),
-                    Text(
-                      latitude == null
-                          ? "Record your location while you are near the problem."
-                          : "Recorded: ${latitude!.toStringAsFixed(3)}, ${longitude!.toStringAsFixed(3)}",
-                    ),
-                    TextButton.icon(
-                      onPressed: busy || deviceBusy ? null : getLocation,
-                      icon: Icon(Icons.my_location),
-                      label: Text(
-                        latitude == null
-                            ? "Record location"
-                            : "Record location again",
+                    latitude == null
+                        ? Text(
+                            "Record your location while you are near the problem.",
+                          )
+                        : Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.green.shade800,
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  "Location recorded: ${latitude!.toStringAsFixed(3)}, ${longitude!.toStringAsFixed(3)}",
+                                ),
+                              ),
+                            ],
+                          ),
+                    SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: busy || deviceBusy ? null : getLocation,
+                        icon: Icon(Icons.my_location),
+                        label: Text(
+                          latitude == null
+                              ? "Record location"
+                              : "Record location again",
+                        ),
                       ),
                     ),
+                    if (locationError.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            locationError,
+                            style: TextStyle(color: Colors.red.shade800),
+                          ),
+                        ),
+                      ),
                     if (deviceBusy) LinearProgressIndicator(),
                     if (error.isNotEmpty)
                       Padding(
                         padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Text(
-                          error,
-                          style: TextStyle(color: Colors.red.shade800),
+                        child: Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            error,
+                            style: TextStyle(color: Colors.red.shade800),
+                          ),
                         ),
                       ),
                     SizedBox(height: 20),

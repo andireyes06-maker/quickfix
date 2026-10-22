@@ -219,7 +219,13 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                     if (error.isNotEmpty) ...[
                       SizedBox(height: 16),
-                      Text(error, style: TextStyle(color: Colors.red.shade800)),
+                      Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          error,
+                          style: TextStyle(color: Colors.red.shade800),
+                        ),
+                      ),
                     ],
                     SizedBox(height: 24),
                     ElevatedButton(

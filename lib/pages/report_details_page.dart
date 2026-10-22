@@ -115,12 +115,12 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
               },
               child: Text("Cancel"),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
                 deleteReport();
               },
-              child: Text("Delete", style: TextStyle(color: Colors.red)),
+              child: Text("Delete"),
             ),
           ],
         );

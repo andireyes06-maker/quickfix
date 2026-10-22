@@ -18,7 +18,7 @@ service cloud.firestore {
           && d.description is string && d.description.size() > 0 && d.description.size() <= 2000
           && d.location is string && d.location.size() > 0 && d.location.size() <= 160
           && d.category in ['Furniture', 'Electrical', 'Plumbing', 'Equipment', 'Other']
-          && d.photoPath is string && d.photoPath.matches('quickfix/' + request.auth.uid + '/' + reportId + '/[^/]+')
+          && d.photoPath == 'quickfix_photos/' + reportId
           && d.latitude is number && d.latitude >= -90 && d.latitude <= 90
           && d.longitude is number && d.longitude >= -180 && d.longitude <= 180
           && d.status in ['Submitted', 'Under Review', 'In Progress', 'Resolved']
@@ -31,12 +31,40 @@ service cloud.firestore {
       }
       allow read: if owner();
       allow create: if request.auth != null && validReport()
-        && request.resource.data.status == 'Submitted' && request.resource.data.createdAt == request.time;
+        && request.resource.data.status == 'Submitted' && request.resource.data.createdAt == request.time
+        && existsAfter(/databases/$(database)/documents/quickfix_photos/$(reportId));
       allow update: if owner() && validReport()
         && request.resource.data.createdAt == resource.data.createdAt
         && ((resource.data.status == 'Submitted' && request.resource.data.status == 'Submitted')
           || (nextStatus() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])));
       allow delete: if owner() && resource.data.status == 'Submitted';
+    }
+    // Photos live here as base64 text because Firebase Storage needs the Blaze plan.
+    // The photo document uses the same id as its report.
+    match /quickfix_photos/{reportId} {
+      function reportPath() {
+        return /databases/$(database)/documents/quickfix_reports/$(reportId);
+      }
+      function photoOwner() {
+        return request.auth != null && resource.data.ownerId == request.auth.uid;
+      }
+      function validPhoto() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['ownerId', 'contentType', 'data', 'updatedAt'])
+          && d.keys().hasOnly(['ownerId', 'contentType', 'data', 'updatedAt'])
+          && d.ownerId == request.auth.uid
+          && d.contentType in ['image/jpeg', 'image/png', 'image/webp']
+          && d.data is string && d.data.size() > 0 && d.data.size() <= 700000
+          && d.updatedAt == request.time;
+      }
+      allow read: if photoOwner();
+      allow create: if request.auth != null && validPhoto()
+        && getAfter(reportPath()).data.ownerId == request.auth.uid
+        && getAfter(reportPath()).data.status == 'Submitted';
+      allow update: if photoOwner() && validPhoto()
+        && get(reportPath()).data.status == 'Submitted';
+      allow delete: if photoOwner()
+        && (!exists(reportPath()) || get(reportPath()).data.status == 'Submitted');
     }
   }
 }

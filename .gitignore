@@ -56,3 +56,6 @@ firebase-adminsdk*.json
 /emulator-data/
 /firebase-export-*/
 node_modules/
+
+# Brainstorming mockups
+/.superpowers/

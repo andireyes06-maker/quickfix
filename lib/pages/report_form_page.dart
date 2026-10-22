@@ -1,8 +1,8 @@
 import "dart:async";
+import "dart:convert";
 
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
-import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:geolocator/geolocator.dart";
@@ -52,7 +52,6 @@ class _ReportFormPageState extends State<ReportFormPage> {
   TextEditingController locationController = TextEditingController();
   String category = "Furniture";
   String photoType = "image/jpeg";
-  String oldPhoto = "";
   String error = "";
   Uint8List? photo;
   double? latitude;
@@ -60,6 +59,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
   bool busy = false;
   bool deviceBusy = false;
   bool changed = false;
+  bool hasPhoto = false;
   Future<Uint8List?>? currentPhoto;
   String userId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -72,17 +72,25 @@ class _ReportFormPageState extends State<ReportFormPage> {
       descriptionController.text = data["description"];
       locationController.text = data["location"];
       category = data["category"];
-      oldPhoto = data["photoPath"];
       latitude = (data["latitude"] as num).toDouble();
       longitude = (data["longitude"] as num).toDouble();
-      if (oldPhoto.isNotEmpty) {
-        // Only for the preview; saving never waits for this.
-        currentPhoto = FirebaseStorage.instance
-            .ref(oldPhoto)
-            .getData(5 * 1024 * 1024);
-      }
+      hasPhoto = true;
+      // Only for the preview; saving never waits for this.
+      currentPhoto = loadPhoto(widget.reportId);
     }
     recoverPhoto();
+  }
+
+  // Photos are saved in Firestore as base64 text, because Firebase Storage needs a paid plan.
+  Future<Uint8List?> loadPhoto(String reportId) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection("quickfix_photos")
+        .doc(reportId)
+        .get();
+    if (!snapshot.exists) {
+      return null;
+    }
+    return base64Decode(snapshot.data()!["data"]);
   }
 
   // Recover a photo if Android restarted the app while the camera was open.
@@ -124,9 +132,9 @@ class _ReportFormPageState extends State<ReportFormPage> {
     if (!mounted) {
       return;
     }
-    if (bytes.length > 5 * 1024 * 1024) {
+    if (bytes.length > 500 * 1024) {
       setState(() {
-        error = "Choose a photo smaller than 5 MB.";
+        error = "This photo is too large. Take it again or choose a smaller one.";
       });
       return;
     }
@@ -147,9 +155,9 @@ class _ReportFormPageState extends State<ReportFormPage> {
     try {
       final file = await ImagePicker().pickImage(
         source: source,
-        maxWidth: 1600,
-        maxHeight: 1600,
-        imageQuality: 75,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 60,
         requestFullMetadata: false,
       );
       if (file != null) {
@@ -249,7 +257,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
     if (!formKey.currentState!.validate()) {
       return;
     }
-    if (photo == null && oldPhoto.isEmpty) {
+    if (photo == null && !hasPhoto) {
       setState(() {
         error = "Please take or choose a photo of the problem.";
       });
@@ -271,29 +279,17 @@ class _ReportFormPageState extends State<ReportFormPage> {
     final reference = widget.reportId.isEmpty
         ? collection.doc()
         : collection.doc(widget.reportId);
-    String path = oldPhoto;
-    String uploaded = "";
-    bool saved = false;
+    final photoReference = FirebaseFirestore.instance
+        .collection("quickfix_photos")
+        .doc(reference.id);
     try {
-      if (photo != null) {
-        String extension = photoType == "image/png"
-            ? "png"
-            : photoType == "image/webp"
-            ? "webp"
-            : "jpg";
-        path =
-            "quickfix/$userId/${reference.id}/${DateTime.now().microsecondsSinceEpoch}.$extension";
-        final storage = FirebaseStorage.instance.ref(path);
-        await storage.putData(photo!, SettableMetadata(contentType: photoType));
-        uploaded = path;
-      }
       Map<String, dynamic> values = {
         "ownerId": userId,
         "title": titleController.text.trim(),
         "description": descriptionController.text.trim(),
         "location": locationController.text.trim(),
         "category": category,
-        "photoPath": path,
+        "photoPath": "quickfix_photos/${reference.id}",
         "latitude": latitude,
         "longitude": longitude,
         "updatedAt": FieldValue.serverTimestamp(),
@@ -314,15 +310,16 @@ class _ReportFormPageState extends State<ReportFormPage> {
           values["createdAt"] = FieldValue.serverTimestamp();
           transaction.set(reference, values);
         }
-      });
-      saved = true;
-      if (uploaded.isNotEmpty && oldPhoto.isNotEmpty && uploaded != oldPhoto) {
-        try {
-          await FirebaseStorage.instance.ref(oldPhoto).delete();
-        } catch (e) {
-          /* Report is saved; an old image may need cleanup. */
+        // The photo is saved in the same transaction, so a report never exists without it.
+        if (photo != null) {
+          transaction.set(photoReference, {
+            "ownerId": userId,
+            "contentType": photoType,
+            "data": base64Encode(photo!),
+            "updatedAt": FieldValue.serverTimestamp(),
+          });
         }
-      }
+      });
       if (!mounted) {
         return;
       }
@@ -334,12 +331,10 @@ class _ReportFormPageState extends State<ReportFormPage> {
           ),
         ),
       );
-    } on FirebaseException catch (e) {
+    } on FirebaseException {
       if (mounted) {
         setState(() {
-          error = e.plugin == "firebase_storage"
-              ? "Photo upload failed. Check your connection or try again later. Your report has not been saved."
-              : "Could not save the report. Check your connection and try again.";
+          error = "Could not save the report. Check your connection and try again.";
         });
       }
     } catch (e) {
@@ -350,13 +345,6 @@ class _ReportFormPageState extends State<ReportFormPage> {
         });
       }
     } finally {
-      if (!saved && uploaded.isNotEmpty) {
-        try {
-          await FirebaseStorage.instance.ref(uploaded).delete();
-        } catch (e) {
-          /* A failed upload may need cleanup in Storage. */
-        }
-      }
       if (mounted) {
         setState(() {
           busy = false;
@@ -546,7 +534,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
                           },
                         ),
                       ),
-                    if (photo == null && oldPhoto.isNotEmpty)
+                    if (photo == null && hasPhoto)
                       FutureBuilder<Uint8List?>(
                         future: currentPhoto,
                         builder: (context, image) {
@@ -611,7 +599,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
                       ],
                     ),
                     Text(
-                      "One photo (JPG, PNG, or WebP), up to 5 MB. On desktop browsers, Take photo may open a file picker.",
+                      "One photo (JPG, PNG, or WebP). It is made smaller automatically. On desktop browsers, Take photo may open a file picker.",
                     ),
                     SizedBox(height: 24),
                     Text(

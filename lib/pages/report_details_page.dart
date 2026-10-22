@@ -1,6 +1,6 @@
+import "dart:convert";
 import "dart:typed_data";
 import "package:cloud_firestore/cloud_firestore.dart";
-import "package:firebase_storage/firebase_storage.dart";
 import "package:flutter/material.dart";
 import "report_form_page.dart";
 
@@ -14,7 +14,6 @@ class ReportDetailsPage extends StatefulWidget {
 class _ReportDetailsPageState extends State<ReportDetailsPage> {
   bool busy = false;
   String error = "";
-  String photoPath = "";
   Future<Uint8List?>? photo;
   Stream<DocumentSnapshot<Map<String, dynamic>>>? reportStream;
 
@@ -22,6 +21,19 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   void initState() {
     super.initState();
     loadReport();
+    photo = loadPhoto();
+  }
+
+  // Photos are saved in Firestore as base64 text, because Firebase Storage needs a paid plan.
+  Future<Uint8List?> loadPhoto() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection("quickfix_photos")
+        .doc(widget.reportId)
+        .get();
+    if (!snapshot.exists) {
+      return null;
+    }
+    return base64Decode(snapshot.data()!["data"]);
   }
 
   void loadReport() {
@@ -133,33 +145,29 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       busy = true;
       error = "";
     });
-    String path = "";
     try {
       final reference = FirebaseFirestore.instance
           .collection("quickfix_reports")
+          .doc(widget.reportId);
+      final photoReference = FirebaseFirestore.instance
+          .collection("quickfix_photos")
           .doc(widget.reportId);
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         final current = await transaction.get(reference);
         if (!current.exists || current.data()!["status"] != "Submitted") {
           throw Exception("Only pending reports can be deleted.");
         }
-        path = current.data()!["photoPath"];
+        // The report and its photo are deleted together.
         transaction.delete(reference);
+        transaction.delete(photoReference);
       });
-      String message = "Report deleted.";
-      try {
-        await FirebaseStorage.instance.ref(path).delete();
-      } catch (e) {
-        message =
-            "Report deleted. Its photo could not be removed; please check Storage for cleanup.";
-      }
       if (!mounted) {
         return;
       }
       Navigator.pop(context);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ).showSnackBar(SnackBar(content: Text("Report deleted.")));
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -202,13 +210,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
               return Center(child: Text("This report has been deleted."));
             }
             final report = snapshot.data!.data()!;
-            String path = report["photoPath"];
-            if (path != photoPath) {
-              photoPath = path;
-              photo = FirebaseStorage.instance
-                  .ref(path)
-                  .getData(5 * 1024 * 1024);
-            }
             List<String> statuses = [
               "Submitted",
               "Under Review",
@@ -258,9 +259,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                                 TextButton(
                                   onPressed: () {
                                     setState(() {
-                                      photo = FirebaseStorage.instance
-                                          .ref(photoPath)
-                                          .getData(5 * 1024 * 1024);
+                                      photo = loadPhoto();
                                     });
                                   },
                                   child: Text("Retry photo"),
@@ -365,7 +364,14 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                                         );
                                       },
                                     ),
-                                  );
+                                  ).then((value) {
+                                    // The photo may have been replaced while editing.
+                                    if (mounted) {
+                                      setState(() {
+                                        photo = loadPhoto();
+                                      });
+                                    }
+                                  });
                                 },
                           icon: Icon(Icons.edit_outlined),
                           label: Text("Edit report"),

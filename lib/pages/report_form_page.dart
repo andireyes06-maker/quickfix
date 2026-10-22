@@ -380,12 +380,12 @@ class _ReportFormPageState extends State<ReportFormPage> {
               },
               child: Text("Keep editing"),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
                 Navigator.pop(context);
               },
-              child: Text("Discard", style: TextStyle(color: Colors.red)),
+              child: Text("Discard"),
             ),
           ],
         );

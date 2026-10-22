@@ -44,6 +44,32 @@ void main() {
     expect(find.text("Passwords do not match"), findsOneWidget);
   });
 
+  testWidgets("Login has no overflow at 320 wide and 2x text", (tester) async {
+    tester.view.physicalSize = Size(320, 568);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(2.0)),
+            child: child!,
+          );
+        },
+        home: LoginPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.text("New to QuickFix? Create an account"));
+    await tester.tap(find.text("New to QuickFix? Create an account"));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   test("photoTypeFor accepts only jpeg, png, webp", () {
     expect(photoTypeFor("image/png", "a.bin"), "image/png");
     expect(photoTypeFor("image/jpg", "a"), "image/jpeg");

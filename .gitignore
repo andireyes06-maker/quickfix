@@ -46,6 +46,7 @@ app.*.map.json
 
 # Local handoff, credentials, emulator exports, and tool dependencies
 /HANDOFF.md
+/docs/history.md
 .env
 .env.*
 !.env.example

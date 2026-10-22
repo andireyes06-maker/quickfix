@@ -87,7 +87,7 @@ Never use emulator mode for a production build.
 | Location denied message, mock location | Passed in Chrome (permission denied, then a mock position) | Real GPS and permission dialogs not tested |
 | Camera capture | Desktop browser shows only a file picker | Not tested |
 | Firestore rules (reports, photos, Activity 5 profiles) | Emulator tests passed (`tools/check_rules.cjs`) | Not applicable |
-| Live Firebase with the new rules | Not tested: the new rules are not deployed yet | Not tested |
+| Live Firebase with the new rules | The new Firestore rules were deployed on 2026-10-22; the live app has not been tested yet | Not tested |
 | Builds | Web (production and emulator) and Android release APK built | APK not installed on a phone; iOS not built |
 
 ## Data lifecycle

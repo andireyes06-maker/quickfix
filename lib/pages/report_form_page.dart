@@ -37,6 +37,14 @@ String photoTypeFor(String mimeType, String fileName) {
   return "";
 }
 
+// The line under the app bar that tells the student how far along the form is.
+String stepsLine(int done) {
+  if (done >= 3) {
+    return "All set. Ready to submit.";
+  }
+  return "$done of 3 steps done.";
+}
+
 class ReportFormPage extends StatefulWidget {
   final String reportId;
   final Map<String, dynamic>? report;
@@ -338,7 +346,8 @@ class _ReportFormPageState extends State<ReportFormPage> {
     } on FirebaseException {
       if (mounted) {
         setState(() {
-          error = "Could not save the report. Check your connection and try again.";
+          error =
+              "Could not save the report. Check your connection and try again.";
         });
       }
     } catch (e) {
@@ -389,6 +398,58 @@ class _ReportFormPageState extends State<ReportFormPage> {
     );
   }
 
+  // Step 1 is the three text fields, step 2 the photo, step 3 the location.
+  int stepsDone() {
+    int done = 0;
+    if (titleController.text.trim().isNotEmpty &&
+        descriptionController.text.trim().isNotEmpty &&
+        locationController.text.trim().isNotEmpty) {
+      done++;
+    }
+    if (photo != null || hasPhoto) {
+      done++;
+    }
+    if (latitude != null) {
+      done++;
+    }
+    return done;
+  }
+
+  // The gold number and the title at the top of each step card.
+  Widget stepHeading(String number, String title) {
+    return Row(
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Color(0xFFF2B134),
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            number,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1F3A5F),
+            ),
+          ),
+        ),
+        SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1F3A5F),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     titleController.dispose();
@@ -410,300 +471,377 @@ class _ReportFormPageState extends State<ReportFormPage> {
         appBar: AppBar(
           title: Text(widget.reportId.isEmpty ? "New report" : "Edit report"),
         ),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 680),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(20),
-              child: Form(
-                key: formKey,
-                onChanged: () {
-                  if (!changed) {
-                    setState(() {
-                      changed = true;
-                    });
-                  }
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      "What needs fixing?",
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      "Add a clear photo and enough detail to identify the campus problem. Everything on this page is required.",
-                    ),
-                    SizedBox(height: 24),
-                    TextFormField(
-                      controller: titleController,
-                      enabled: !busy,
-                      maxLength: 100,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: "Problem title",
-                        hintText: "Broken chair in Room 204",
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Please enter a problem title";
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    TextFormField(
-                      controller: descriptionController,
-                      enabled: !busy,
-                      minLines: 3,
-                      maxLines: 6,
-                      maxLength: 2000,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: "Description",
-                        alignLabelWithHint: true,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Please describe the problem";
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    TextFormField(
-                      controller: locationController,
-                      enabled: !busy,
-                      maxLength: 160,
-                      decoration: InputDecoration(
-                        labelText: "Campus location",
-                        hintText: "Building, floor, and room",
-                        prefixIcon: Icon(Icons.place_outlined),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Please enter the campus location";
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: category,
-                      decoration: InputDecoration(labelText: "Category"),
-                      items: [
-                        for (String item in [
-                          "Furniture",
-                          "Electrical",
-                          "Plumbing",
-                          "Equipment",
-                          "Other",
-                        ])
-                          DropdownMenuItem(value: item, child: Text(item)),
-                      ],
-                      onChanged: busy
-                          ? null
-                          : (value) {
-                              if (value != null) {
-                                setState(() {
-                                  category = value;
-                                  changed = true;
-                                });
-                              }
-                            },
-                    ),
-                    SizedBox(height: 24),
-                    Text(
-                      "Problem photo (required)",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    if (photo != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.memory(
-                          photo!,
-                          semanticLabel: "Photo of the reported problem",
-                          height: 220,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stack) {
-                            return Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Text(
-                                "Photo preview unavailable. Choose a JPG, PNG, or WebP photo.",
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    if (photo == null && hasPhoto)
-                      FutureBuilder<Uint8List?>(
-                        future: currentPhoto,
-                        builder: (context, image) {
-                          if (image.connectionState != ConnectionState.done) {
-                            return SizedBox(
-                              height: 220,
-                              child: Center(child: CircularProgressIndicator()),
-                            );
-                          }
-                          if (image.hasError || image.data == null) {
-                            return Text(
-                              "The current photo could not be previewed. It will be kept unless you choose a replacement.",
-                            );
-                          }
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.memory(
-                                  image.data!,
-                                  semanticLabel: "Photo of the reported problem",
-                                  height: 220,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stack) {
-                                    return Text(
-                                      "The current photo cannot be displayed.",
-                                    );
-                                  },
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                "Your existing photo will be kept unless you choose a replacement.",
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    SizedBox(height: 8),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: busy || deviceBusy
-                              ? null
-                              : () {
-                                  pickPhoto(ImageSource.camera);
-                                },
-                          icon: Icon(Icons.camera_alt_outlined),
-                          label: Text("Take photo"),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: busy || deviceBusy
-                              ? null
-                              : () {
-                                  pickPhoto(ImageSource.gallery);
-                                },
-                          icon: Icon(Icons.photo_library_outlined),
-                          label: Text("Choose photo"),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      "One JPG, PNG, or WebP photo. Large photos are shrunk automatically.",
-                    ),
-                    if (photoError.isNotEmpty)
-                      Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Semantics(
-                          liveRegion: true,
-                          child: Text(
-                            photoError,
-                            style: TextStyle(color: Colors.red.shade800),
-                          ),
-                        ),
-                      ),
-                    SizedBox(height: 24),
-                    Text(
-                      "Approximate location (required)",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    latitude == null
-                        ? Text(
-                            "Record your location while you are near the problem.",
-                          )
-                        : Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle,
-                                color: Colors.green.shade800,
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "Location recorded: ${latitude!.toStringAsFixed(3)}, ${longitude!.toStringAsFixed(3)}",
-                                ),
-                              ),
-                            ],
-                          ),
-                    SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: OutlinedButton.icon(
-                        onPressed: busy || deviceBusy ? null : getLocation,
-                        icon: Icon(Icons.my_location),
-                        label: Text(
-                          latitude == null
-                              ? "Record location"
-                              : "Record location again",
-                        ),
-                      ),
-                    ),
-                    if (locationError.isNotEmpty)
-                      Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Semantics(
-                          liveRegion: true,
-                          child: Text(
-                            locationError,
-                            style: TextStyle(color: Colors.red.shade800),
-                          ),
-                        ),
-                      ),
-                    if (deviceBusy) LinearProgressIndicator(),
-                    if (error.isNotEmpty)
-                      Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Semantics(
-                          liveRegion: true,
-                          child: Text(
-                            error,
-                            style: TextStyle(color: Colors.red.shade800),
-                          ),
-                        ),
-                      ),
-                    SizedBox(height: 20),
-                    ElevatedButton.icon(
-                      onPressed: busy || deviceBusy ? null : saveReport,
-                      icon: Icon(Icons.send_outlined),
-                      label: Text(
-                        busy
-                            ? "Saving report..."
-                            : widget.reportId.isEmpty
-                            ? "Submit report"
-                            : "Save changes",
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                  ],
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Shows how many of the three steps are finished.
+            Container(
+              color: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Semantics(
+                liveRegion: true,
+                child: Text(
+                  stepsLine(stepsDone()),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1F3A5F),
+                  ),
                 ),
               ),
             ),
-          ),
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: 680),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(20),
+                    child: Form(
+                      key: formKey,
+                      // Clears an old error as soon as the field is fixed.
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      onChanged: () {
+                        // Rebuild on every change so the step line stays up to date.
+                        setState(() {
+                          changed = true;
+                        });
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            "What needs fixing?",
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1F3A5F),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Add a clear photo and enough detail to identify the campus problem. Everything on this page is required.",
+                          ),
+                          SizedBox(height: 16),
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Color(0xFFDFE5EE)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                stepHeading("1", "Describe it"),
+                                SizedBox(height: 16),
+                                TextFormField(
+                                  controller: titleController,
+                                  enabled: !busy,
+                                  maxLength: 100,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  decoration: InputDecoration(
+                                    labelText: "Problem title",
+                                    hintText: "Broken chair in Room 204",
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return "Please enter a problem title";
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 16),
+                                TextFormField(
+                                  controller: descriptionController,
+                                  enabled: !busy,
+                                  minLines: 3,
+                                  maxLines: 6,
+                                  maxLength: 2000,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  decoration: InputDecoration(
+                                    labelText: "Description",
+                                    alignLabelWithHint: true,
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return "Please describe the problem";
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 16),
+                                TextFormField(
+                                  controller: locationController,
+                                  enabled: !busy,
+                                  maxLength: 160,
+                                  decoration: InputDecoration(
+                                    labelText: "Campus location",
+                                    hintText: "Building, floor, and room",
+                                    prefixIcon: Icon(Icons.place_outlined),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return "Please enter the campus location";
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 16),
+                                DropdownButtonFormField<String>(
+                                  initialValue: category,
+                                  decoration: InputDecoration(
+                                    labelText: "Category",
+                                  ),
+                                  items: [
+                                    for (String item in [
+                                      "Furniture",
+                                      "Electrical",
+                                      "Plumbing",
+                                      "Equipment",
+                                      "Other",
+                                    ])
+                                      DropdownMenuItem(
+                                        value: item,
+                                        child: Text(item),
+                                      ),
+                                  ],
+                                  onChanged: busy
+                                      ? null
+                                      : (value) {
+                                          if (value != null) {
+                                            setState(() {
+                                              category = value;
+                                              changed = true;
+                                            });
+                                          }
+                                        },
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Color(0xFFDFE5EE)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                stepHeading("2", "Add a photo (required)"),
+                                SizedBox(height: 12),
+                                if (photo != null)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.memory(
+                                      photo!,
+                                      semanticLabel:
+                                          "Photo of the reported problem",
+                                      height: 220,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stack) {
+                                        return Padding(
+                                          padding: EdgeInsets.all(16),
+                                          child: Text(
+                                            "Photo preview unavailable. Choose a JPG, PNG, or WebP photo.",
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                if (photo == null && hasPhoto)
+                                  FutureBuilder<Uint8List?>(
+                                    future: currentPhoto,
+                                    builder: (context, image) {
+                                      if (image.connectionState !=
+                                          ConnectionState.done) {
+                                        return SizedBox(
+                                          height: 220,
+                                          child: Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        );
+                                      }
+                                      if (image.hasError ||
+                                          image.data == null) {
+                                        return Text(
+                                          "The current photo could not be previewed. It will be kept unless you choose a replacement.",
+                                        );
+                                      }
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            child: Image.memory(
+                                              image.data!,
+                                              semanticLabel:
+                                                  "Photo of the reported problem",
+                                              height: 220,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stack) {
+                                                    return Text(
+                                                      "The current photo cannot be displayed.",
+                                                    );
+                                                  },
+                                            ),
+                                          ),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            "Your existing photo will be kept unless you choose a replacement.",
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 8,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: busy || deviceBusy
+                                          ? null
+                                          : () {
+                                              pickPhoto(ImageSource.camera);
+                                            },
+                                      icon: Icon(Icons.camera_alt_outlined),
+                                      label: Text("Take photo"),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: busy || deviceBusy
+                                          ? null
+                                          : () {
+                                              pickPhoto(ImageSource.gallery);
+                                            },
+                                      icon: Icon(Icons.photo_library_outlined),
+                                      label: Text("Choose photo"),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  "One JPG, PNG, or WebP photo. Large photos are shrunk automatically.",
+                                ),
+                                if (photoError.isNotEmpty)
+                                  Padding(
+                                    padding: EdgeInsets.only(top: 8),
+                                    child: Semantics(
+                                      liveRegion: true,
+                                      child: Text(
+                                        photoError,
+                                        style: TextStyle(
+                                          color: Colors.red.shade800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Color(0xFFDFE5EE)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                stepHeading("3", "Where is it? (required)"),
+                                SizedBox(height: 12),
+                                latitude == null
+                                    ? Text(
+                                        "Record your location while you are near the problem.",
+                                      )
+                                    : Row(
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle,
+                                            color: Colors.green.shade800,
+                                          ),
+                                          SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              "Location recorded: ${latitude!.toStringAsFixed(3)}, ${longitude!.toStringAsFixed(3)}",
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: OutlinedButton.icon(
+                                    onPressed: busy || deviceBusy
+                                        ? null
+                                        : getLocation,
+                                    icon: Icon(Icons.my_location),
+                                    label: Text(
+                                      latitude == null
+                                          ? "Record location"
+                                          : "Record location again",
+                                    ),
+                                  ),
+                                ),
+                                if (locationError.isNotEmpty)
+                                  Padding(
+                                    padding: EdgeInsets.only(top: 8),
+                                    child: Semantics(
+                                      liveRegion: true,
+                                      child: Text(
+                                        locationError,
+                                        style: TextStyle(
+                                          color: Colors.red.shade800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (deviceBusy) LinearProgressIndicator(),
+                              ],
+                            ),
+                          ),
+                          if (error.isNotEmpty)
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Semantics(
+                                liveRegion: true,
+                                child: Text(
+                                  error,
+                                  style: TextStyle(color: Colors.red.shade800),
+                                ),
+                              ),
+                            ),
+                          SizedBox(height: 20),
+                          ElevatedButton.icon(
+                            onPressed: busy || deviceBusy ? null : saveReport,
+                            icon: Icon(Icons.send_outlined),
+                            label: Text(
+                              busy
+                                  ? "Saving report..."
+                                  : widget.reportId.isEmpty
+                                  ? "Submit report"
+                                  : "Save changes",
+                            ),
+                          ),
+                          SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

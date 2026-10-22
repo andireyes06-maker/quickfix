@@ -84,6 +84,13 @@ void main() {
     expect(openReportsLine(3), "3 open reports. Thanks for helping our campus.");
   });
 
+  test("stepsLine says how many steps are done", () {
+    expect(stepsLine(0), "0 of 3 steps done.");
+    expect(stepsLine(1), "1 of 3 steps done.");
+    expect(stepsLine(2), "2 of 3 steps done.");
+    expect(stepsLine(3), "All set. Ready to submit.");
+  });
+
   test("photoTypeFor accepts only jpeg, png, webp", () {
     expect(photoTypeFor("image/png", "a.bin"), "image/png");
     expect(photoTypeFor("image/jpg", "a"), "image/jpeg");

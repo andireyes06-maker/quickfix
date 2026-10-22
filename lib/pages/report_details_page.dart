@@ -232,8 +232,9 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                       Text(
                         report["title"],
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
+                          color: Color(0xFF1F3A5F),
                         ),
                       ),
                       SizedBox(height: 12),
@@ -304,6 +305,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: Color(0xFF1F3A5F),
                         ),
                       ),
                       SizedBox(height: 8),
@@ -314,6 +316,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: Color(0xFF1F3A5F),
                         ),
                       ),
                       SizedBox(height: 8),
@@ -347,6 +350,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: Color(0xFF1F3A5F),
                         ),
                       ),
                       SizedBox(height: 4),

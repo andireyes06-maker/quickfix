@@ -48,7 +48,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   // One color per status, so every screen shows a status the same way.
   Color statusColor(String status) {
     if (status == "Under Review") {
-      return Colors.orange.shade800;
+      return Color(0xFFB45309);
     }
     if (status == "In Progress") {
       return Colors.blue.shade800;

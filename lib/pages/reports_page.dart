@@ -34,7 +34,7 @@ class _ReportsPageState extends State<ReportsPage> {
   // One color per status, so every screen shows a status the same way.
   Color statusColor(String status) {
     if (status == "Under Review") {
-      return Colors.orange.shade800;
+      return Color(0xFFB45309);
     }
     if (status == "In Progress") {
       return Colors.blue.shade800;
@@ -43,6 +43,32 @@ class _ReportsPageState extends State<ReportsPage> {
       return Colors.green.shade800;
     }
     return Colors.grey.shade700;
+  }
+
+  // One icon per category, so reports are easier to tell apart in the list.
+  IconData categoryIcon(String category) {
+    if (category == "Furniture") {
+      return Icons.chair_outlined;
+    }
+    if (category == "Electrical") {
+      return Icons.electrical_services;
+    }
+    if (category == "Plumbing") {
+      return Icons.plumbing;
+    }
+    if (category == "Equipment") {
+      return Icons.devices_other;
+    }
+    return Icons.build_outlined;
+  }
+
+  // A new report has no server time for a moment, so there is no date to show yet.
+  String shortDate(Timestamp? value) {
+    if (value == null) {
+      return "";
+    }
+    final date = value.toDate().toLocal();
+    return "${date.month}/${date.day}/${date.year}";
   }
 
   @override
@@ -92,9 +118,17 @@ class _ReportsPageState extends State<ReportsPage> {
                     SizedBox(height: 6),
                     Text(
                       tab == 0
-                          ? "Report a problem. Track the progress. Status changes are simulated for this class demo."
+                          ? "Report a problem. Track the progress."
                           : "Your resolved campus maintenance reports.",
                     ),
+                    if (tab == 0)
+                      Text(
+                        "Demo: status changes are simulated.",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -185,9 +219,11 @@ class _ReportsPageState extends State<ReportsPage> {
                               ),
                               SizedBox(height: 16),
                               Text(
-                                tab == 0
+                                tab == 1
+                                    ? "No resolved reports yet"
+                                    : filter == "All"
                                     ? "No reports here yet"
-                                    : "No resolved reports yet",
+                                    : "No $filter reports",
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -195,9 +231,11 @@ class _ReportsPageState extends State<ReportsPage> {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                tab == 0
+                                tab == 1
+                                    ? "Resolved reports will appear in your history."
+                                    : filter == "All"
                                     ? "Use New report to tell us what needs fixing."
-                                    : "Resolved reports will appear in your history.",
+                                    : "Reports that reach this status will show up here.",
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -216,7 +254,7 @@ class _ReportsPageState extends State<ReportsPage> {
                             leading: CircleAvatar(
                               backgroundColor: Colors.indigo.shade50,
                               child: Icon(
-                                Icons.build_outlined,
+                                categoryIcon(report["category"]),
                                 color: Colors.indigo,
                               ),
                             ),
@@ -230,12 +268,25 @@ class _ReportsPageState extends State<ReportsPage> {
                                 SizedBox(height: 6),
                                 Text(report["location"]),
                                 SizedBox(height: 8),
-                                Text(
-                                  report["status"],
-                                  style: TextStyle(
-                                    color: statusColor(report["status"]),
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 8,
+                                  children: [
+                                    Text(
+                                      report["status"],
+                                      style: TextStyle(
+                                        color: statusColor(report["status"]),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    if (shortDate(report["createdAt"]).isNotEmpty)
+                                      Text(
+                                        shortDate(report["createdAt"]),
+                                        style: TextStyle(
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ],
                             ),

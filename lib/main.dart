@@ -47,6 +47,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: Color(0xFFF5F6F8),
+        // Dropdown menus use this color, so they are white instead of tinted.
+        canvasColor: Colors.white,
         primarySwatch: Colors.indigo,
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.indigo,
@@ -64,6 +66,32 @@ class MyApp extends StatelessWidget {
             foregroundColor: Colors.white,
             padding: EdgeInsets.all(16),
           ),
+        ),
+        // White surfaces and indigo buttons, so no default purple tint shows.
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation: 1,
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: Colors.indigo),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.indigo,
+            side: BorderSide(color: Colors.indigo),
+          ),
+        ),
+        chipTheme: ChipThemeData(
+          backgroundColor: Colors.white,
+          selectedColor: Colors.indigo.shade50,
+        ),
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: Colors.white,
         ),
       ),
       home: startupError.isNotEmpty

@@ -31,6 +31,20 @@ class _ReportsPageState extends State<ReportsPage> {
     });
   }
 
+  // One color per status, so every screen shows a status the same way.
+  Color statusColor(String status) {
+    if (status == "Under Review") {
+      return Colors.orange.shade800;
+    }
+    if (status == "In Progress") {
+      return Colors.blue.shade800;
+    }
+    if (status == "Resolved") {
+      return Colors.green.shade800;
+    }
+    return Colors.grey.shade700;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,7 +92,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     SizedBox(height: 6),
                     Text(
                       tab == 0
-                          ? "Report a problem. Track the progress."
+                          ? "Report a problem. Track the progress. Status changes are simulated for this class demo."
                           : "Your resolved campus maintenance reports.",
                     ),
                   ],
@@ -143,8 +157,15 @@ class _ReportsPageState extends State<ReportsPage> {
                     items.sort((a, b) {
                       Timestamp? first = a.data()["createdAt"];
                       Timestamp? second = b.data()["createdAt"];
-                      if (first == null || second == null) {
+                      if (first == null && second == null) {
                         return 0;
+                      }
+                      // A report that was just created has no server time yet, so show it first.
+                      if (first == null) {
+                        return -1;
+                      }
+                      if (second == null) {
+                        return 1;
                       }
                       return second.compareTo(first);
                     });
@@ -212,9 +233,7 @@ class _ReportsPageState extends State<ReportsPage> {
                                 Text(
                                   report["status"],
                                   style: TextStyle(
-                                    color: report["status"] == "Resolved"
-                                        ? Colors.green.shade800
-                                        : Colors.indigo,
+                                    color: statusColor(report["status"]),
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),

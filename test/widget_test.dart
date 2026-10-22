@@ -18,6 +18,32 @@ void main() {
     expect(find.text("Please enter your password"), findsOneWidget);
   });
 
+  testWidgets("Registration shows a mismatch error", (tester) async {
+    await tester.pumpWidget(MaterialApp(home: LoginPage()));
+    await tester.tap(find.text("New to QuickFix? Create an account"));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, "Full name"),
+      "Maria Santos",
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, "Email"),
+      "maria@example.com",
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, "Password"),
+      "secret1",
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, "Confirm password"),
+      "secret2",
+    );
+    await tester.ensureVisible(find.text("Create account"));
+    await tester.tap(find.text("Create account"));
+    await tester.pumpAndSettle();
+    expect(find.text("Passwords do not match"), findsOneWidget);
+  });
+
   test("photoTypeFor accepts only jpeg, png, webp", () {
     expect(photoTypeFor("image/png", "a.bin"), "image/png");
     expect(photoTypeFor("image/jpg", "a"), "image/jpeg");

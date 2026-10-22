@@ -33,6 +33,20 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     });
   }
 
+  // One color per status, so every screen shows a status the same way.
+  Color statusColor(String status) {
+    if (status == "Under Review") {
+      return Colors.orange.shade800;
+    }
+    if (status == "In Progress") {
+      return Colors.blue.shade800;
+    }
+    if (status == "Resolved") {
+      return Colors.green.shade800;
+    }
+    return Colors.grey.shade700;
+  }
+
   String formatDate(Timestamp? value) {
     if (value == null) {
       return "Saving...";
@@ -222,7 +236,15 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                         spacing: 8,
                         children: [
                           Chip(label: Text(report["category"])),
-                          Chip(label: Text(report["status"])),
+                          Chip(
+                            label: Text(
+                              report["status"],
+                              style: TextStyle(
+                                color: statusColor(report["status"]),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                       SizedBox(height: 16),
@@ -304,6 +326,8 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      SizedBox(height: 4),
+                      Text("Status changes are simulated for this class demo."),
                       SizedBox(height: 8),
                       for (int index = 0; index < statuses.length; index++)
                         Padding(

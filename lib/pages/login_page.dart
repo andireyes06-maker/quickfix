@@ -34,7 +34,12 @@ class _LoginPageState extends State<LoginPage> {
               email: emailController.text.trim(),
               password: passwordController.text,
             );
-        await result.user!.updateDisplayName(nameController.text.trim());
+        // The account exists now, so a failed name save should not look like a failed sign up.
+        try {
+          await result.user!.updateDisplayName(nameController.text.trim());
+        } catch (e) {
+          /* The name can be set again later. */
+        }
       } else {
         await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: emailController.text.trim(),
@@ -59,6 +64,13 @@ class _LoginPageState extends State<LoginPage> {
               ? "Could not create the account. Please try again."
               : "Incorrect email or password.";
         }
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        error = "Something went wrong. Please try again.";
       });
     } finally {
       if (mounted) {
@@ -207,11 +219,7 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                     if (error.isNotEmpty) ...[
                       SizedBox(height: 16),
-                      Text(
-                        error,
-                        style: TextStyle(color: Colors.red),
-                        semanticsLabel: error,
-                      ),
+                      Text(error, style: TextStyle(color: Colors.red.shade800)),
                     ],
                     SizedBox(height: 24),
                     ElevatedButton(

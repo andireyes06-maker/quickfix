@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:firebase_storage/firebase_storage.dart";
@@ -5,6 +7,35 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:geolocator/geolocator.dart";
 import "package:image_picker/image_picker.dart";
+
+// Returns the photo type we accept, or "" when the file is not a JPG, PNG, or WebP.
+// A known mime type wins; the file name is only used when there is no mime type.
+String photoTypeFor(String mimeType, String fileName) {
+  String mime = mimeType.toLowerCase();
+  String name = fileName.toLowerCase();
+  if (mime.isNotEmpty) {
+    if (mime == "image/jpeg" || mime == "image/jpg") {
+      return "image/jpeg";
+    }
+    if (mime == "image/png") {
+      return "image/png";
+    }
+    if (mime == "image/webp") {
+      return "image/webp";
+    }
+    return "";
+  }
+  if (name.endsWith(".jpg") || name.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+  if (name.endsWith(".png")) {
+    return "image/png";
+  }
+  if (name.endsWith(".webp")) {
+    return "image/webp";
+  }
+  return "";
+}
 
 class ReportFormPage extends StatefulWidget {
   final String reportId;
@@ -28,6 +59,8 @@ class _ReportFormPageState extends State<ReportFormPage> {
   double? longitude;
   bool busy = false;
   bool deviceBusy = false;
+  bool changed = false;
+  Future<Uint8List?>? currentPhoto;
   String userId = FirebaseAuth.instance.currentUser!.uid;
 
   @override
@@ -42,6 +75,12 @@ class _ReportFormPageState extends State<ReportFormPage> {
       oldPhoto = data["photoPath"];
       latitude = (data["latitude"] as num).toDouble();
       longitude = (data["longitude"] as num).toDouble();
+      if (oldPhoto.isNotEmpty) {
+        // Only for the preview; saving never waits for this.
+        currentPhoto = FirebaseStorage.instance
+            .ref(oldPhoto)
+            .getData(5 * 1024 * 1024);
+      }
     }
     recoverPhoto();
   }
@@ -67,6 +106,20 @@ class _ReportFormPageState extends State<ReportFormPage> {
   }
 
   Future<void> usePhoto(XFile file) async {
+    String mime = "";
+    if (file.mimeType != null) {
+      mime = file.mimeType!;
+    }
+    String type = photoTypeFor(mime, file.name);
+    if (type.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        error = "Choose a JPG, PNG, or WebP photo.";
+      });
+      return;
+    }
     final bytes = await file.readAsBytes();
     if (!mounted) {
       return;
@@ -77,17 +130,11 @@ class _ReportFormPageState extends State<ReportFormPage> {
       });
       return;
     }
-    String type = "image/jpeg";
-    if (file.name.toLowerCase().endsWith(".png")) {
-      type = "image/png";
-    }
-    if (file.name.toLowerCase().endsWith(".webp")) {
-      type = "image/webp";
-    }
     setState(() {
       photo = bytes;
       photoType = type;
       error = "";
+      changed = true;
     });
   }
 
@@ -132,23 +179,34 @@ class _ReportFormPageState extends State<ReportFormPage> {
     });
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        throw Exception(
-          "Turn on your device location services, then try again.",
-        );
+        if (mounted) {
+          setState(() {
+            error = "Turn on your device location services, then try again.";
+          });
+        }
+        return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
       if (permission == LocationPermission.deniedForever) {
-        throw Exception(
-          "Location is blocked. Enable it for QuickFix in your device or browser settings.",
-        );
+        if (mounted) {
+          setState(() {
+            error =
+                "Location is blocked. Enable it for QuickFix in your device or browser settings.";
+          });
+        }
+        return;
       }
       if (permission == LocationPermission.denied) {
-        throw Exception(
-          "Location permission is needed to record where you reported the problem.",
-        );
+        if (mounted) {
+          setState(() {
+            error =
+                "Location permission is needed to record where you reported the problem.";
+          });
+        }
+        return;
       }
       final position = await Geolocator.getCurrentPosition(
         locationSettings: LocationSettings(
@@ -162,12 +220,19 @@ class _ReportFormPageState extends State<ReportFormPage> {
       setState(() {
         latitude = (position.latitude * 1000).round() / 1000;
         longitude = (position.longitude * 1000).round() / 1000;
+        changed = true;
       });
-    } catch (e) {
+    } on TimeoutException {
       if (mounted) {
         setState(() {
           error =
-              "Could not save this report. Check your connection and that it is still pending.";
+              "Could not get your location in time. Try again near a window or outdoors.";
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          error = "Could not get your location. Please try again.";
         });
       }
     } finally {
@@ -300,6 +365,34 @@ class _ReportFormPageState extends State<ReportFormPage> {
     }
   }
 
+  // Ask before leaving a form that has unsaved input.
+  void confirmDiscard() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text("Discard changes?"),
+          content: Text("Your changes to this report have not been saved."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: Text("Keep editing"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                Navigator.pop(context);
+              },
+              child: Text("Discard", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     titleController.dispose();
@@ -311,7 +404,12 @@ class _ReportFormPageState extends State<ReportFormPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !busy,
+      canPop: !busy && !changed,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && !busy) {
+          confirmDiscard();
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.reportId.isEmpty ? "New report" : "Edit report"),
@@ -323,6 +421,13 @@ class _ReportFormPageState extends State<ReportFormPage> {
               padding: EdgeInsets.all(20),
               child: Form(
                 key: formKey,
+                onChanged: () {
+                  if (!changed) {
+                    setState(() {
+                      changed = true;
+                    });
+                  }
+                },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -410,6 +515,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
                               if (value != null) {
                                 setState(() {
                                   category = value;
+                                  changed = true;
                                 });
                               }
                             },
@@ -434,15 +540,50 @@ class _ReportFormPageState extends State<ReportFormPage> {
                             return Padding(
                               padding: EdgeInsets.all(16),
                               child: Text(
-                                "Photo preview unavailable. Choose a JPEG or PNG photo.",
+                                "Photo preview unavailable. Choose a JPG, PNG, or WebP photo.",
                               ),
                             );
                           },
                         ),
                       ),
                     if (photo == null && oldPhoto.isNotEmpty)
-                      Text(
-                        "Your existing photo will be kept unless you choose a replacement.",
+                      FutureBuilder<Uint8List?>(
+                        future: currentPhoto,
+                        builder: (context, image) {
+                          if (image.connectionState != ConnectionState.done) {
+                            return SizedBox(
+                              height: 220,
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+                          if (image.hasError || image.data == null) {
+                            return Text(
+                              "The current photo could not be previewed. It will be kept unless you choose a replacement.",
+                            );
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.memory(
+                                  image.data!,
+                                  height: 220,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stack) {
+                                    return Text(
+                                      "The current photo cannot be displayed.",
+                                    );
+                                  },
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                "Your existing photo will be kept unless you choose a replacement.",
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     SizedBox(height: 8),
                     Wrap(
@@ -470,7 +611,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
                       ],
                     ),
                     Text(
-                      "One photo, up to 5 MB. On desktop browsers, Take photo may open a file picker.",
+                      "One photo (JPG, PNG, or WebP), up to 5 MB. On desktop browsers, Take photo may open a file picker.",
                     ),
                     SizedBox(height: 24),
                     Text(

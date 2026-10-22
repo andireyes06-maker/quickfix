@@ -32,11 +32,30 @@ Firebase client configuration is included to identify the registered apps. It do
 - Submit a title, description, campus location, category, photo, and approximate coordinates.
 - Camera capture and photo selection. Photos must be JPG, PNG, or WebP. The app shrinks them (800 px, about 500 KB at most), and a photo that is still too large is rejected before saving. Other formats are rejected too. On desktop browsers, large PNG files are not shrunk and may be rejected; use a JPG or a smaller photo. Phone cameras give JPG photos, which are shrunk.
 - Recording location explains why it failed (location services off, permission denied or blocked, timed out). A report still needs recorded coordinates before it can be submitted.
-- My Reports shows active reports; History shows resolved reports.
-- Details show the photo, report information, timestamps, and status progress.
+- My Reports greets the student by first name and shows how many reports are open. Three count tiles (Submitted, Under Review, In Progress) double as filters: tap a tile to filter, tap it again to clear. Each report card shows a category icon, its status, and its date. History shows resolved reports.
+- Details show the photo, report information, timestamps, and a progress tracker with the current step in bold.
+- The new report form has three steps (Describe it, Add a photo, Where is it) and a live line under the app bar: "n of 3 steps done" until everything is ready. A missing photo or location is flagged under its own step, and a field error clears as soon as the field is fixed.
 - Pending means Submitted. Only pending reports can be edited or deleted, enforced in Firestore rules and transactions.
 - Editing a pending report shows its current photo. Leaving the form with unsaved changes asks before discarding them.
-- Demo button advances Submitted → Under Review → In Progress → Resolved. The screens say these changes are simulated for the class demo, and each status has its own color (grey, orange, blue, green). No maintenance dashboard or notifications.
+- Demo button advances Submitted → Under Review → In Progress → Resolved. The screens say these changes are simulated for the class demo, and each status has its own color (grey, amber-brown, blue, green) and always shows its name too. No maintenance dashboard or notifications.
+
+## Look and accessibility
+The "Campus Service" design: navy (`#1F3A5F`) for app bars, headings, and main buttons; gold (`#F2B134`) for the New report button and step numbers; white cards with 16 px corners on a pale page. Delete and discard use a red button. Only Roboto (the default font) and plain Flutter widgets are used.
+
+Text colors were measured, not guessed. Every pair below is at least 4.5:1 (WCAG AA for normal text):
+
+| Pair | Ratio |
+| --- | --- |
+| White on navy | 11.48 |
+| Navy on gold | 6.08 |
+| Navy on white | 11.48 |
+| Muted text on white | 7.98 |
+| Status colors on white (grey, amber-brown, blue, green) | 6.19, 5.02, 5.75, 5.13 |
+| White text inside the status pills | 5.02 to 6.19 |
+| Red error and delete on white | 5.62 |
+| Demo caption on navy | 6.53 |
+
+Other accessibility work: the photo has a screen-reader description, error messages are announced, required parts are labeled "(required)", icon buttons have tooltips, and layouts were checked at 320 px wide and at 2x text size.
 
 ## Firebase
 Project: `aclon-franz`. QuickFix has separate web, Android, and iOS app registrations.
@@ -83,7 +102,8 @@ Never use emulator mode for a production build.
 | Submit with photo, view, edit with photo preview, replace photo, delete pending (report and photo removed together), status simulation, History | Passed in Chrome against local emulators (photos stored in Firestore) at 412 px | Not tested |
 | Photo limits | A 4.8 MB JPG was shrunk to about 78 KB; an 11.5 MB PNG was rejected with a message (a GIF was rejected in an earlier pass, same check) | Real phone camera photo sizes not tested |
 | Report whose photo document is missing | Page loads and shows "The photo could not be loaded" with Retry | Not applicable |
-| 320 px wide screens and 2x text | Checked in Chrome before the photo change (list, form, details); login has a widget test | Not tested |
+| New look: sign in, register, My Reports (greeting, count tiles, filters), details, three-step form | Checked in Chrome against local emulators at 412 px, 320 px, and 2x text (final pass 2026-10-22); a live new report arriving while a filter was on kept the filter and updated the counts | Not tested |
+| Screen readers | Photo label and announced errors confirmed in the browser accessibility tree only | TalkBack and VoiceOver not tested |
 | Location denied message, mock location | Passed in Chrome (permission denied, then a mock position) | Real GPS and permission dialogs not tested |
 | Camera capture | Desktop browser shows only a file picker | Not tested |
 | Firestore rules (reports, photos, Activity 5 profiles) | Emulator tests passed (`tools/check_rules.cjs`) | Not applicable |

@@ -418,6 +418,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
   // The gold number and the title at the top of each step card.
   Widget stepHeading(String number, String title) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           width: 28,
@@ -427,8 +428,10 @@ class _ReportFormPageState extends State<ReportFormPage> {
             color: Color(0xFFF2B134),
             shape: BoxShape.circle,
           ),
+          // The digit keeps its size so it always fits inside the circle.
           child: Text(
             number,
+            textScaler: TextScaler.noScaling,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: Color(0xFF1F3A5F),

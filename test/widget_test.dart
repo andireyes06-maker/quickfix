@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:quickfix/pages/login_page.dart";
 import "package:quickfix/pages/report_form_page.dart";
+import "package:quickfix/pages/reports_page.dart";
 
 void main() {
   testWidgets("Registration validates before contacting Firebase", (
@@ -68,6 +69,19 @@ void main() {
     await tester.tap(find.text("New to QuickFix? Create an account"));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  test("firstNameOf gives a friendly first name", () {
+    expect(firstNameOf("Maria Santos"), "Maria");
+    expect(firstNameOf("  Juan  "), "Juan");
+    expect(firstNameOf(""), "there");
+    expect(firstNameOf(null), "there");
+  });
+
+  test("openReportsLine counts open reports", () {
+    expect(openReportsLine(0), "No open reports right now.");
+    expect(openReportsLine(1), "1 open report. Thanks for helping our campus.");
+    expect(openReportsLine(3), "3 open reports. Thanks for helping our campus.");
   });
 
   test("photoTypeFor accepts only jpeg, png, webp", () {

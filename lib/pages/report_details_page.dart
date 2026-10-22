@@ -362,7 +362,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                                     ? Icons.check_circle
                                     : Icons.radio_button_unchecked,
                                 color: index <= current
-                                    ? Colors.indigo
+                                    ? Color(0xFF1F3A5F)
                                     : Colors.grey.shade600,
                               ),
                               SizedBox(width: 10),

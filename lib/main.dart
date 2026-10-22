@@ -46,52 +46,69 @@ class MyApp extends StatelessWidget {
       title: "QuickFix",
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        scaffoldBackgroundColor: Color(0xFFF5F6F8),
+        // Campus Service look: navy (0xFF1F3A5F) and gold (0xFFF2B134) on a pale page.
+        scaffoldBackgroundColor: Color(0xFFF3F5F9),
         // Dropdown menus use this color, so they are white instead of tinted.
         canvasColor: Colors.white,
-        primarySwatch: Colors.indigo,
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.indigo,
+          backgroundColor: Color(0xFF1F3A5F),
           foregroundColor: Colors.white,
           centerTitle: true,
         ),
         inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Color(0xFF1F3A5F), width: 2),
+          ),
           filled: true,
           fillColor: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.indigo,
+            backgroundColor: Color(0xFF1F3A5F),
             foregroundColor: Colors.white,
             padding: EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
-        // White surfaces and indigo buttons, so no default purple tint shows.
+        // White surfaces and navy buttons, so no default purple tint shows.
         cardTheme: CardThemeData(
           color: Colors.white,
           surfaceTintColor: Colors.transparent,
-          elevation: 1,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Color(0xFFDFE5EE)),
+          ),
         ),
         dialogTheme: DialogThemeData(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
         ),
         textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(foregroundColor: Colors.indigo),
+          style: TextButton.styleFrom(foregroundColor: Color(0xFF1F3A5F)),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.indigo,
-            side: BorderSide(color: Colors.indigo),
+            foregroundColor: Color(0xFF1F3A5F),
+            side: BorderSide(color: Color(0xFF1F3A5F)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
-        chipTheme: ChipThemeData(
-          backgroundColor: Colors.white,
-          selectedColor: Colors.indigo.shade50,
-        ),
+        chipTheme: ChipThemeData(backgroundColor: Colors.white),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: Colors.white,
+        ),
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: Color(0xFF1F3A5F),
+        ),
+        progressIndicatorTheme: ProgressIndicatorThemeData(
+          color: Color(0xFF1F3A5F),
         ),
       ),
       home: startupError.isNotEmpty

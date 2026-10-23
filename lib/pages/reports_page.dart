@@ -1,6 +1,7 @@
 import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
+import "../brand_mark.dart";
 import "report_form_page.dart";
 import "report_details_page.dart";
 
@@ -98,7 +99,14 @@ class _ReportsPageState extends State<ReportsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("QuickFix"),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            BrandMark(size: 28),
+            SizedBox(width: 10),
+            Text("QuickFix"),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: "Sign out",

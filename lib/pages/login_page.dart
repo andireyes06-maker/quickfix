@@ -1,5 +1,6 @@
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
+import "../brand_mark.dart";
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -105,19 +106,7 @@ class _LoginPageState extends State<LoginPage> {
                 bottom: false,
                 child: Column(
                   children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: Color(0xFFF2B134),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Icon(
-                        Icons.handyman_outlined,
-                        size: 36,
-                        color: Color(0xFF1F3A5F),
-                      ),
-                    ),
+                    BrandMark(size: 72),
                     SizedBox(height: 14),
                     Text(
                       "QuickFix",

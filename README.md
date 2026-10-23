@@ -42,6 +42,8 @@ Firebase client configuration is included to identify the registered apps. It do
 ## Look and accessibility
 The "Campus Service" design: navy (`#1F3A5F`) for app bars, headings, and main buttons; gold (`#F2B134`) for the New report button and step numbers; white cards with 16 px corners on a pale page. Delete and discard use a red button. Only Roboto (the default font) and plain Flutter widgets are used.
 
+The logo (a yellow location pin with a wrench, on blue) lives in `assets/brand/quickfix-logo.png`. `python3 -I tools/make_brand_assets.py` (needs Pillow) cuts the pin out and rebuilds the Android launcher icons (including the adaptive icon), the web icons and favicon, and the in-app mark (`assets/brand/quickfix-mark.png`, shown by `lib/brand_mark.dart` on the sign-in screen and in the My Reports app bar). The word "QuickFix" stays live text next to the mark, and the image is hidden from screen readers.
+
 Text colors were measured, not guessed. Every pair below is at least 4.5:1 (WCAG AA for normal text):
 
 | Pair | Ratio |
@@ -108,7 +110,8 @@ Never use emulator mode for a production build.
 | Camera capture | Desktop browser shows only a file picker | Not tested |
 | Firestore rules (reports, photos, Activity 5 profiles) | Emulator tests passed (`tools/check_rules.cjs`) | Not applicable |
 | Live Firebase with the new rules | The new Firestore rules were deployed on 2026-10-22; the live app has not been tested yet | Not tested |
-| Builds | Web (production and emulator) and Android release APK built | APK not installed on a phone; iOS not built |
+| Logo: sign-in screen, My Reports app bar | Checked in Chrome against local emulators at 412 px (2026-10-23), 0 console errors | Launcher icon not seen on a phone; iOS icons not made |
+| Builds | Web (production and emulator) and Android release APK built (APK badging shows the adaptive icon) | APK not installed on a phone; iOS not built |
 
 ## Data lifecycle
 A report and its photo are saved together in one transaction, replaced together when a pending report is edited with a new photo, and deleted together. If a save or delete fails, nothing is left half done, so there are no unused photo objects to clean up and no cleanup job is needed. Editing a report without choosing a new photo leaves its photo untouched.

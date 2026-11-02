@@ -19,6 +19,34 @@ void main() {
     expect(find.text("Please enter your password"), findsOneWidget);
   });
 
+  testWidgets("Password visibility resets when switching auth modes", (
+    tester,
+  ) async {
+    await tester.pumpWidget(MaterialApp(home: LoginPage()));
+
+    final passwordField = find.widgetWithText(TextFormField, "Password");
+    final editablePassword = find.descendant(
+      of: passwordField,
+      matching: find.byType(EditableText),
+    );
+    await tester.tap(find.byTooltip("Show password"));
+    await tester.pump();
+    expect(tester.widget<EditableText>(editablePassword).obscureText, isFalse);
+
+    await tester.tap(find.text("New to QuickFix? Create an account"));
+    await tester.pumpAndSettle();
+    expect(tester.widget<EditableText>(editablePassword).obscureText, isTrue);
+
+    await tester.tap(find.byTooltip("Show password"));
+    await tester.pump();
+    expect(tester.widget<EditableText>(editablePassword).obscureText, isFalse);
+
+    await tester.ensureVisible(find.text("Already registered? Sign in"));
+    await tester.tap(find.text("Already registered? Sign in"));
+    await tester.pumpAndSettle();
+    expect(tester.widget<EditableText>(editablePassword).obscureText, isTrue);
+  });
+
   testWidgets("Registration shows a mismatch error", (tester) async {
     await tester.pumpWidget(MaterialApp(home: LoginPage()));
     await tester.tap(find.text("New to QuickFix? Create an account"));
@@ -81,7 +109,10 @@ void main() {
   test("openReportsLine counts open reports", () {
     expect(openReportsLine(0), "No open reports right now.");
     expect(openReportsLine(1), "1 open report. Thanks for helping our campus.");
-    expect(openReportsLine(3), "3 open reports. Thanks for helping our campus.");
+    expect(
+      openReportsLine(3),
+      "3 open reports. Thanks for helping our campus.",
+    );
   });
 
   test("stepsLine says how many steps are done", () {

@@ -268,6 +268,7 @@ class _LoginPageState extends State<LoginPage> {
                                 : () {
                                     setState(() {
                                       register = !register;
+                                      hidePassword = true;
                                       error = "";
                                     });
                                     formKey.currentState!.reset();
